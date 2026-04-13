@@ -1,7 +1,69 @@
-const START_TS = new Date('2026-04-13T00:00:00Z').getTime();
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Countdown Timer</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background: url('matrix-background.png') repeat;
+        }
+        #countdown {
+            color: white;
+            font-size: 3rem;
+            text-align: center;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        #progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+        #progress {
+            height: 100%;
+            background: green;
+            width: 0;
+            transition: width 1s;
+        }
+    </style>
+</head>
+<body>
+    <div id="countdown">Loading...</div>
+    <div id="progress-bar"><div id="progress"></div></div>
+    <script>
+        const endTimestamp = new Date('2026-04-13T00:00:00Z').getTime();
 
-function getStartTime() {
-    return START_TS;
-}
+        function updateCountdown() {
+            const now = new Date().getTime();
+            const timeLeft = endTimestamp - now;
 
-// ... rest of the code, ensure all localStorage references related to start time are removed ...
+            if (timeLeft < 0) {
+                document.getElementById('countdown').innerHTML = 'Countdown has ended!';
+                document.getElementById('progress').style.width = '100%';
+                return;
+            }
+
+            const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+            document.getElementById('countdown').innerHTML = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+            const progressPercentage = ((endTimestamp - now) / (endTimestamp - new Date('2026-04-13T00:00:00Z'))); 
+            document.getElementById('progress').style.width = (100 - progressPercentage * 100) + '%';
+        }
+
+        setInterval(updateCountdown, 1000);
+        updateCountdown();
+    </script>
+</body>
+</html>
