@@ -405,29 +405,346 @@
       drops = new Array(cols).fill(0).map(() => Math.random()*-50);
     }
 
-    window.addEventListener('resize', resize);
-    resize();
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PROJECT NEMESIS COUNTDOWN</title>
 
-    function draw(){
-      ctx.fillStyle = 'rgba(5,5,5,0.05)';
-      ctx.fillRect(0,0,canvas.width,canvas.height);
-      ctx.fillStyle = '#00ff41';
-      ctx.font = '13px Courier New, monospace';
+<style>
+/* ── Reset & base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-      for(let i=0;i<cols;i++){
-        const char = CHARS[Math.floor(Math.random()*CHARS.length)];
-        const x = i*COL_W;
-        const y = drops[i]*COL_W;
-        ctx.fillStyle = (Math.random() > 0.92) ? '#ffffff' : '#00ff41';
-        ctx.fillText(char, x, y);
-        if(y>canvas.height && Math.random()>0.975){ drops[i]=0; }
-        drops[i] += 0.5;
-      }
+:root {
+  --bg: #0d0d0d;
+  --accent: #ff6f61;
+  --accent-dim: #aa3f33;
+  --accent-faint: #330a07;
+  --text: #f2f2f2;
+  --border: rgba(255,111,97,0.25);
+  --font: 'Orbitron', sans-serif;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  overflow-x: hidden;
+}
+
+#matrix-canvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 0;
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+/* ── Page Layout ── */
+.page {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+.header { text-align: center; margin-bottom: 2rem; }
+
+.header .stamp {
+  display: inline-block;
+  border: 2px solid var(--accent);
+  color: var(--accent);
+  font-size: clamp(0.6rem, 1.5vw, 0.8rem);
+  letter-spacing: 0.25em;
+  padding: 3px 10px;
+  margin-bottom: 1rem;
+  transform: rotate(-2deg);
+  opacity: 0.8;
+}
+
+.header h1 {
+  font-size: clamp(1.5rem, 5vw, 3rem);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-shadow: 0 0 12px rgba(255,111,97,0.6);
+  margin-bottom: 0.5rem;
+}
+
+.header .subtitle {
+  font-size: clamp(0.65rem, 1.8vw, 0.9rem);
+  color: var(--accent-dim);
+  letter-spacing: 0.12em;
+}
+
+/* ── Countdown ── */
+.countdown {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+}
+
+.unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 70px;
+}
+
+.unit-box {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-faint);
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.unit-number {
+  font-size: clamp(2rem, 8vw, 4rem);
+  font-weight: bold;
+  color: var(--accent);
+  text-shadow: 0 0 16px rgba(255,111,97,0.45);
+  line-height: 1;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.unit-number.flip {
+  transform: scaleY(0.7);
+  opacity: 0.3;
+}
+
+.unit-label {
+  font-size: clamp(0.5rem, 1.3vw, 0.7rem);
+  letter-spacing: 0.18em;
+  color: var(--accent-dim);
+  text-transform: uppercase;
+}
+
+.sep {
+  font-size: clamp(1.5rem, 6vw, 3rem);
+  color: var(--accent-dim);
+  padding-top: 14px;
+  line-height: 1;
+  user-select: none;
+  animation: blink 1.5s step-start infinite;
+}
+
+@keyframes blink { 0%,100% {opacity:1} 50% {opacity:0} }
+
+/* ── Progress ── */
+.progress-section {
+  width: min(600px, 90vw);
+  margin-bottom: 2rem;
+}
+
+.progress-track {
+  width: 100%;
+  height: 6px;
+  background: var(--accent-faint);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  box-shadow: 0 0 8px rgba(255,111,97,0.5);
+  width: 0%;
+  transition: width 1s linear;
+}
+
+.status {
+  font-size: clamp(0.5rem, 1.3vw, 0.7rem);
+  color: var(--accent-dim);
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+.cursor {
+  display: inline-block;
+  width: 0.55em;
+  height: 1.1em;
+  background: var(--accent);
+  vertical-align: text-bottom;
+  margin-left: 2px;
+  animation: blink 1s step-start infinite;
+}
+
+.expired-msg {
+  display: none;
+  text-align: center;
+  font-size: clamp(1rem, 4vw, 1.8rem);
+  letter-spacing: 0.2em;
+  color: var(--accent);
+  text-shadow: 0 0 24px rgba(255,111,97,0.6);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+</style>
+</head>
+<body>
+
+<canvas id="matrix-canvas"></canvas>
+
+<main class="page">
+<header class="header">
+  <div class="stamp">PROJECT NEMESIS</div>
+  <h1>FINAL COUNTDOWN<span class="cursor"></span></h1>
+  <p class="subtitle">TIME UNTIL DEPLOYMENT:</p>
+</header>
+
+<div class="countdown" id="countdown">
+  <div class="unit">
+    <div class="unit-box"><span class="unit-number" id="cd-days">00</span></div>
+    <span class="unit-label">DAYS</span>
+  </div>
+  <span class="sep">:</span>
+  <div class="unit">
+    <div class="unit-box"><span class="unit-number" id="cd-hours">00</span></div>
+    <span class="unit-label">HOURS</span>
+  </div>
+  <span class="sep">:</span>
+  <div class="unit">
+    <div class="unit-box"><span class="unit-number" id="cd-mins">00</span></div>
+    <span class="unit-label">MINUTES</span>
+  </div>
+  <span class="sep">:</span>
+  <div class="unit">
+    <div class="unit-box"><span class="unit-number" id="cd-secs">00</span></div>
+    <span class="unit-label">SECONDS</span>
+  </div>
+</div>
+
+<div class="expired-msg" id="expired-msg">
+  [ DEPLOYMENT INITIATED — SYSTEM ACTIVE ]
+</div>
+
+<div class="progress-section">
+  <div class="progress-track">
+    <div class="progress-fill" id="progress-fill"></div>
+  </div>
+  <p class="status" id="status-line">
+    <span class="tag">[SYS]</span> SYSTEM ONLINE — COUNTDOWN RUNNING
+  </p>
+</div>
+</main>
+
+<script>
+// ====== Countdown logic (same as before) ======
+const END_TS = new Date('2026-05-20T12:00:00Z').getTime();
+const START_TS = END_TS - 30*24*60*60*1000;
+
+const elDays = document.getElementById('cd-days');
+const elHours = document.getElementById('cd-hours');
+const elMins = document.getElementById('cd-mins');
+const elSecs = document.getElementById('cd-secs');
+const elFill = document.getElementById('progress-fill');
+const elStatus = document.getElementById('status-line');
+const elExpired = document.getElementById('expired-msg');
+const elCountdown = document.getElementById('countdown');
+
+function pad(n){ return String(Math.floor(n)).padStart(2,'0'); }
+
+function animateFlip(el,value){
+  const newVal = pad(value);
+  if(el.textContent!==newVal){
+    el.classList.add('flip');
+    setTimeout(()=>{ el.textContent=newVal; el.classList.remove('flip'); },150);
+  }
+}
+
+const statusMessages = [
+  '<span class="tag">[SYS]</span> CORE: ONLINE',
+  '<span class="tag">[NET]</span> FIREWALL: SECURE',
+  '<span class="tag">[SEC]</span> ENCRYPTION: ACTIVE',
+  '<span class="tag">[LOG]</span> COUNTDOWN IN PROGRESS'
+];
+let statusIdx=0;
+setInterval(()=>{ statusIdx=(statusIdx+1)%statusMessages.length; elStatus.innerHTML=statusMessages[statusIdx]; },4000);
+
+function tick(){
+  const now=Date.now();
+  const remaining=END_TS-now;
+  const elapsed=now-START_TS;
+
+  if(remaining<=0){
+    elCountdown.style.display='none';
+    elExpired.style.display='block';
+    elFill.style.width='100%';
+    elStatus.innerHTML='<span class="tag">[DEPLOY]</span> SYSTEM ACTIVE';
+    return;
+  }
+
+  const totalSecs=Math.floor(remaining/1000);
+  const days=Math.floor(totalSecs/86400);
+  const hours=Math.floor((totalSecs%86400)/3600);
+  const mins=Math.floor((totalSecs%3600)/60);
+  const secs=totalSecs%60;
+
+  animateFlip(elDays,days);
+  animateFlip(elHours,hours);
+  animateFlip(elMins,mins);
+  animateFlip(elSecs,secs);
+
+  const pctElapsed=Math.min((elapsed/(30*24*60*60*1000))*100,100);
+  elFill.style.width=pctElapsed.toFixed(2)+'%';
+}
+
+tick();
+const tickInterval=setInterval(()=>{ tick(); if(END_TS-Date.now()<=0){clearInterval(tickInterval;} },1000);
+
+// ====== Matrix background ======
+(function matrixRain(){
+  const canvas=document.getElementById('matrix-canvas');
+  const ctx=canvas.getContext('2d');
+  const CHARS='0123456789ABCDEF@#$%^&*';
+  const COL_W=16;
+  let cols,drops;
+
+  function resize(){
+    canvas.width=window.innerWidth;
+    canvas.height=window.innerHeight;
+    cols=Math.ceil(canvas.width/COL_W);
+    drops=new Array(cols).fill(0).map(()=>Math.random()*-50);
+  }
+  window.addEventListener('resize',resize);
+  resize();
+
+  function draw(){
+    ctx.fillStyle='rgba(13,13,13,0.05)';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.font='13px monospace';
+    for(let i=0;i<cols;i++){
+      const char=CHARS[Math.floor(Math.random()*CHARS.length)];
+      const x=i*COL_W, y=drops[i]*COL_W;
+      ctx.fillStyle=(Math.random()>0.9)?'#ff6f61':'#aa3f33';
+      ctx.fillText(char,x,y);
+      if(y>canvas.height && Math.random()>0.975){ drops[i]=0; }
+      drops[i]+=0.5;
     }
-
-    setInterval(draw,45);
-  })();
+  }
+  setInterval(draw,45);
+})();
 </script>
-
 </body>
 </html>
