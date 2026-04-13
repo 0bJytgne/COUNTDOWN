@@ -243,7 +243,107 @@ html, body {
 </main>
 
 <script>
-// Keep all your previous countdown logic and matrix background exactly the same
+const DURATION_DAYS = 30; // 30-day countdown
+const STORAGE_KEY = 'cyber_start_ts';
+
+function getStartTime() {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored) { 
+    const ts = parseInt(stored, 10); 
+    if (!isNaN(ts)) return ts; 
+  }
+  const now = Date.now();
+  localStorage.setItem(STORAGE_KEY, now.toString());
+  return now;
+}
+
+const START_TS = getStartTime();
+const TOTAL_MS = DURATION_DAYS * 24 * 60 * 60 * 1000;
+const END_TS = START_TS + TOTAL_MS;
+
+const elDays = document.getElementById('cd-days');
+const elHours = document.getElementById('cd-hours');
+const elMins = document.getElementById('cd-mins');
+const elSecs = document.getElementById('cd-secs');
+const elFill = document.getElementById('progress-fill');
+const elStatus = document.getElementById('status-line');
+const elExpired = document.getElementById('expired-msg');
+const elCountdown = document.getElementById('countdown');
+
+function pad(n){ return String(Math.floor(n)).padStart(2,'0'); }
+function animateFlip(el,value){
+  const newVal = pad(value);
+  if(el.textContent !== newVal){
+    el.classList.add('flip');
+    setTimeout(()=>{ el.textContent=newVal; el.classList.remove('flip'); },150);
+  }
+}
+
+function tick(){
+  const now = Date.now();
+  const remaining = END_TS - now;
+  const elapsed = now - START_TS;
+
+  if(remaining <= 0){
+    elCountdown.style.display='none';
+    elExpired.style.display='block';
+    elFill.style.width='100%';
+    elStatus.innerHTML='<span class="tag">[SYS]</span> EVENT ACTIVE';
+    return;
+  }
+
+  const totalSecs = Math.floor(remaining/1000);
+  const days = Math.floor(totalSecs/86400);
+  const hours = Math.floor((totalSecs%86400)/3600);
+  const mins = Math.floor((totalSecs%3600)/60);
+  const secs = totalSecs%60;
+
+  animateFlip(elDays,days);
+  animateFlip(elHours,hours);
+  animateFlip(elMins,mins);
+  animateFlip(elSecs,secs);
+
+  const pctElapsed = Math.min((elapsed/TOTAL_MS)*100,100);
+  elFill.style.width = pctElapsed.toFixed(2)+'%';
+}
+
+tick();
+const interval = setInterval(()=>{ tick(); if(Date.now()>=END_TS) clearInterval(interval); },1000);
+
+/* ── Matrix Background ── */
+(function matrixRain(){
+  const canvas = document.getElementById('matrix-canvas');
+  const ctx = canvas.getContext('2d');
+  const CHARS = '01@#$%^&*()_+=-<>ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  const COL_W = 16;
+  let cols, drops;
+
+  function resize(){
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    cols = Math.ceil(canvas.width/COL_W);
+    drops = new Array(cols).fill(0).map(()=>Math.random()*-50);
+  }
+  window.addEventListener('resize',resize);
+  resize();
+
+  function draw(){
+    ctx.fillStyle='rgba(26,26,46,0.05)';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.font='13px monospace';
+    for(let i=0;i<cols;i++){
+      const char = CHARS[Math.floor(Math.random()*CHARS.length)];
+      const x=i*COL_W;
+      const y=drops[i]*COL_W;
+      ctx.fillStyle=(Math.random()>0.92)?'#ffffff':'#e94560';
+      ctx.fillText(char,x,y);
+      if(y>canvas.height && Math.random()>0.975) drops[i]=0;
+      drops[i]+=0.5;
+    }
+  }
+  setInterval(draw,45);
+})();
 </script>
+
 </body>
 </html>
