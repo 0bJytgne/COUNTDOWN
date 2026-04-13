@@ -1,5 +1,7 @@
-<script>
-    const START_TS = new Date('2026-04-13T00:00:00Z').getTime();
-    const countdown = START_TS - Date.now();
-    // Add additional countdown logic here
-</script>
+const START_TS = new Date('2026-04-13T00:00:00Z').getTime();
+
+function getStartTime() {
+    return START_TS;
+}
+
+// ... rest of the code, ensure all localStorage references related to start time are removed ...
